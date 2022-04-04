@@ -1,0 +1,6 @@
+(load "~/quicklisp/setup.lisp")
+(require :asdf)
+(load "remember.asd")
+(ql:quickload "remember")
+(in-package :remember)
+(hunchentoot:start *acceptor*)
