@@ -9,22 +9,70 @@
 |#
 
 
+(defparameter *no-image-url*
+  "https://longwoodgardens.org/sites/default/files/highlight_images/76758.jpg")
+
+
+
 
 (defvar *acceptor* (make-instance 'hunchentoot:easy-acceptor
                                   :port 9000))
-(defvar *list-item-formater*)
 
+(defvar *entry-schema* nil)
+
+
+(let ((default-date '(day 0 month 0 year 0 text "")))
+  (setq *entry-schema*
+        `((:name first-name :init "")
+          (:name given-name :init "")
+          (:name date-of-birth :init ,default-date)
+          (:name date-of-death :init ,default-date)
+          (:name date-of-funeral :init ,default-date)
+          (:name group :init 0)
+          (:name row :init 0)
+          (:name gravestone-number :init 0)
+          (:name is-the-gravestone-there :init t)
+          (:name is-the-gravestone-readable :init t)
+          (:name is-the-gravestone-standing :init t)
+          (:name geolocation :init (LATITUDE 48.27061 LONGITUDE 16.4167))
+          (:name comments :init ""))))
+
+(defvar *prepare-item-function* nil)
+(setq *prepare-item-function*
+      (lambda (entry)
+        (declare (optimize (debug 3)))
+        (let* ((schema-fields (mapcar (lambda (s) (getf s :name)) *entry-schema*))
+               (entry-fields (loop for i in entry by #'cddr collect i))
+               (missing-fields (set-difference schema-fields entry-fields)))
+          (loop for field in missing-fields
+                do (setf (getf entry field)
+                         (copy-tree (getf (find field *entry-schema*
+                                                :key (lambda (f) (getf f :name)))
+                                          :init))))
+          entry)))
+
+(defvar *list-item-formater*)
 (setq *list-item-formater*
       (lambda (item)
-        (format nil ":name ~a<br> :surname ~a  « ~a ~a»"
-                (getf item 'first-name)
-                (getf item 'family-name)
-                (getf item 'group)
-                (getf item 'row))))
-
-(defun read-configuration ()
-  (with-open-file (s "config.lisp" :direction :input)
-    (read s)))
+        (who:with-html-output-to-string (s)
+          (:h5 (who:str (format nil "<b>~a</b>, ~a"
+                                (getf item 'family-name)
+                                (getf item 'first-name))))
+          (:div :class "btn-group"
+                (:button :class "btn btn-outline-success" :type "button"
+                         "Group")
+                (:button :class "btn btn-success"
+                         (who:str (getf item 'group)))
+                (:button :class "btn btn-outline-primary" :type "button"
+                         "Row")
+                (:button :class "btn btn-primary"
+                         (who:str (getf item 'row)))
+                #+img
+                (:img :src (if (getf item 'picture-paths)
+                               (car (getf item 'picture-paths))
+                               *no-image-url*)
+                      :width "64"
+                      :class "img-fluid rounded")))))
 
 (defun read-entries-from-file (path)
   (declare (type pathname path))
@@ -35,29 +83,29 @@
   (defparameter *logins*
     `((:name "Group 1"
        :password "group1"
-       :entries (#1=(first-name "Gallo"
+       :entries ,(mapcar *prepare-item-function*
+                          `(#1=(first-name "Gallo"
                                 edited nil
                                 family-name "Alejandro"
                                 group ,(random (incf row))
-                                row ,(random row)
-                                geolocation (longitude 42.24 latitude 468.5))
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                    #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#))
+                                row ,(random row))
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#)))
       (:name "Group 2"
        :password "group2"
        :entries ,(read-entries-from-file #P"data/login-1.lisp")))))
@@ -77,10 +125,17 @@
 (defmacro %icon (name)
   `(who:htm (:i :class (format nil "fa fa-~a" ,name))))
 
+(defmacro %on-sm (&rest body)
+  `(who:htm (:div :class "d-none d-sm-inline" ,@body)))
+
 (hunchentoot:define-easy-handler (home-handler :uri *home-handler-path*) ()
   (with-login
     (setf (hunchentoot:content-type*) "text/html")
-    (let ((entries (getf *login* :entries)))
+    (macrolet ((~badge (style &rest body)
+                 `(who:htm (:span :class
+                                  (format nil "badge bg-~a rounded-0" ,style)
+                                  ,@body))))
+     (let ((entries (getf *login* :entries)))
       (main-page
           (:title "Home")
           (:h1 (who:str (getf *login* :name)))
@@ -88,48 +143,46 @@
           ;; (who:fmt "~a <br> ~s" (logged-in-p) *login*)
           (:div :class "container vertical-scrollable"
                 :style "{overflow-y: scroll}"
-                (:ul :class "list-group"
+                (:ul :class "list-group list-group-numbered"
                      (loop for entry in entries
                            for i from 0
                            do (who:htm
-                               (:li :class "list-group-item d-flex justify-content-between"
-                                    (:a :id (format nil "item-~a" i) :href "#"
-                                        :class "sr-only")
-                                    (:a :class "alert alert-info"
-                                        :href (item-field-path :item i)
-                                        (:span :class
-                                               "position-absolute top-50
-                                                start-0 translate-middle
-                                                badge rounded-pill bg-dark"
-                                               (who:str (1+ i)))
-                                        (who:str (funcall *list-item-formater* entry)))
-                                    (:div (if (getf entry :picture-paths)
-                                              (who:htm (:span :class "badge bg-success"
-                                                              (%icon "camera")))
-                                              (who:htm (:span :class "badge bg-danger"
-                                                              (%icon "camera"))))
-                                          (if (getf entry :is-new)
-                                              (who:htm (:span :class "badge bg-info"
-                                                              (%icon "plus-square")
-                                                              "NEW")))
-                                          (if (getf entry 'seen)
-                                              (who:htm (:span :class "badge bg-success"
-                                                              (%icon "eye")
-                                                              "SEEN"))
-                                              (who:htm (:span :class "badge bg-danger"
-                                                              (%icon "eye-slash")
-                                                              "UNSEEN")))
-                                          (if (getf entry 'edited)
-                                              (who:htm (:span :class "badge bg-success"
-                                                              (%icon "check-square-o")
-                                                              "EDITED"))
-                                              (who:htm (:span :class "badge bg-warning"
-                                                              (%icon "square-o")
-                                                              "UNEDITED")))
-                                          (:a :href (who:fmt "/group/item/create/~a" i)
-                                              (:span :class "badge bg-success"
-                                                     (%icon "plus")))
-                                          ))))))))))
+                               (:li :class "list-group-item d-flex
+                                            justify-content-between
+                                            align-items-start"
+                                    :id (format nil "item-~a" i)
+                                    (:div :class "ms-2 me-auto"
+                                          (:a :class ""
+                                              :href (item-field-path :item i)
+                                              (who:str (funcall
+                                                        *list-item-formater*
+                                                        entry))))
+                                    (:div
+                                     (if (getf entry 'picture-paths)
+                                         (~badge "success" (%icon "camera"))
+                                         (~badge "danger" (%icon "camera")))
+                                     (if (getf entry 'is-new)
+                                         (~badge "info"
+                                                 (%icon "plus-square")
+                                                 (%on-sm " NEW")))
+                                     (if (getf entry 'seen)
+                                         (~badge "success"
+                                                 (%icon "eye")
+                                                 (%on-sm " SEEN"))
+                                         (~badge "danger"
+                                                 (%icon "eye-slash")
+                                                 (%on-sm " UNSEEN")))
+                                     (if (getf entry 'edited)
+                                         (~badge "success"
+                                                 (%icon "check-square-o")
+                                                 (%on-sm " EDITED"))
+                                         (~badge "warning"
+                                                 (%icon "square-o")
+                                                 (%on-sm " UNEDITED")))
+                                     (:a :href (item-create-path :item i)
+                                         (~badge "success"
+                                                 (%icon "plus")))
+                                     )))))))))))
 
 
 
@@ -180,6 +233,19 @@
                                                          "Submit")))))))))))
 
 
+(hunchentoot:define-easy-handler (item-create-handler
+                                  :uri *item-create-handler-path*)
+    (item)
+  (with-login
+      (let* ((item (parse-integer item))
+             (current-item (nth item (getf *login* :entries)))
+             (copy-item (copy-tree current-item)))
+        (setf (getf copy-item 'is-new) t)
+        (nconc (getf *login* :entries) (list copy-item))
+        (hunchentoot:redirect (item-list-id
+                               :item (- (length (getf *login* :entries)) 1))))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter *config*
@@ -197,8 +263,7 @@
 
 (flet ((reader (what) (lambda (entry) (getf entry what)))
        (writer (what) (lambda (value entry) (setf (getf entry what) value))))
-  (forms:defform person-name (:action "/home/person-name"
-                              :id "property-form")
+  (forms:defform person-name (:id *form-name*)
     ((first-name :string
                  :writer (writer 'first-name)
                  :reader (reader 'first-name)
@@ -216,7 +281,7 @@
           :writer (writer 'row)
           :reader (reader 'row))))
 
-  (forms:defform questionnaire (:id "property-form")
+  (forms:defform questionnaire (:id *form-name*)
     ((is-the-gravestone-there :boolean
                               :reader (reader 'is-the-gravestone-there)
                               :writer (writer 'is-the-gravestone-there)
@@ -228,8 +293,7 @@
      (is-the-gravestone-readable :boolean
                                  :reader (reader 'is-the-gravestone-readable)
                                  :writer (writer 'is-the-gravestone-readable)
-                                 :label "Is the gravestone readable?")
-     ))
+                                 :label "Is the gravestone readable?")))
 
   (defmethod render-form (form (name (eql 'questionnaire)))
     (let ((fields (forms::form-fields form)))
@@ -253,7 +317,7 @@
                                            "form-check-label badge bg-success"
                                            :for (radio-id :true)
                                            (:i :class "fa fa-check")
-                                           "yes"))
+                                           " yes"))
                              (:div :class "form-check form-switch mb-3 mt-3"
                                    (:input :type "radio"
                                            :id (radio-id :false)
@@ -264,138 +328,9 @@
                                    (:label :class "form-check-label badge bg-danger"
                                            :for (radio-id :false)
                                            (:i :class "fa fa-times")
-                                           "No")))))))
-        #+nil
-        (who:str (render-form form nil))
-      )))
-  )
+                                           " No")))))))))))
 
-(flet ((reader (what)
-         (lambda (entry) (getf (getf entry 'geolocation) what)))
-       (writer (what) (lambda (value entry)
-                        (unless #1=(getf entry 'geolocation)
-                                (setf #1# nil))
-                        (setf (getf #1# what) value))))
-  (forms:defform geolocation (:action "/home/geolocation"
-                              :id "property-form"
-                              :method :post)
-    ((latitude :string
-               :placeholder "latitude"
-               :label "Latitude"
-               :writer (writer 'latitude)
-               :reader (reader 'latitude))
-     (longitude :string
-                :placeholder "longitude"
-               :label "Longitude"
-                :writer (writer 'longitude)
-                :reader (reader 'longitude))))
-
-  (defmethod render-form (form (name (eql 'geolocation)))
-    (who:with-html-output-to-string (forms.who:*html*)
-      (:link :rel "stylesheet"
-             :href "https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-             :crossorigin "")
-      (:script :src "https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-               :crossorigin "")
-      (forms:with-form-theme 'forms.who:bootstrap-form-theme
-        (forms:with-form-renderer :who
-          (forms:render-form form)))
-
-      ;; TODO
-      #+(or)
-      (:code
-       (who:str
-        (ps:ps
-          (defun set-point (lat lng attrs map)
-            (let ((circle (ps:chain *L
-                                    (circle (list lat lng))
-                                    (add-to map))))
-              (ps:chain circle
-                        (bind-popup (+ lat " - " lng))
-                        (open-popup))))
-          (let* ((main-lng "todo")
-                 (main-lat "todo")
-                 (map (ps:chain *L
-                                (map "mapid")
-                                (set-view (list main-lat main-lng) 8))))
-            (ps:chain *L tile-layer
-                      (ps:lisp (concatenate
-                                'string
-                                "https://api.mapbox.com/styles/v1/{id}/tiles/"
-                                "{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94"
-                                "IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gif"
-                                "Q.rJcFIG214AriISLbB6B5aw")))))))
-      (:div :class "col-lg" :style "min-height: 500px;" :id "mapid")
-        (who:str "<script>
-
-                  function setPoint (lat, lng, attrs, map) {
-                    const circle = L.circle([lat, lng], attrs).addTo(map);
-                    circle.bindPopup(`${lat} - ${lng}`).openPopup();
-                  }
-
-                  const main_lng = {{entry.value.Geolocation.longitude}};
-                  const main_lat = {{entry.value.Geolocation.latitude}};
-                  var map = L.map('mapid')
-                            .setView([ main_lat, main_lng ], 18);
-
-                  L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
-                    maxZoom: 25,
-                    attribution: 'Map data &copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, ' +
-                    'Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>',
-                    id: 'mapbox/streets-v11',
-                    tileSize: 512,
-                    zoomOffset: -1
-                  }).addTo(map);
-
-                  setPoint(main_lat,
-                          main_lng,
-                          { color: 'blue'
-                          , radius: 1
-                          , fillOpacity: 0.5
-                          }
-                          , map);
-
-
-                  map.on(\"click\", (e) => {
-                    const lat = e.latlng.lat;
-                    const lng = e.latlng.lng;
-                    console.log(e.latlng);
-                    L.circle([lat, lng], {
-                      color: 'red',
-                      fillColor: '#f03',
-                      fillOpacity: 0.5,
-                      radius: 2
-                    }).addTo(map).bindPopup(`${lat} - ${lng}`).openPopup();
-                    document.getElementById(\"latitude\").value = lat;
-                    document.getElementById(\"longitude\").value = lng;
-                  });
-
-
-                  map.locate({setView: false, watch: true})
-                    .on('locationfound', function(e){
-                      var marker = L.marker([e.latitude, e.longitude])
-                                    .bindPopup('Your are here :)');
-                      var you = L.circle([e.latitude, e.longitude], e.accuracy/2, {
-                        weight: 1,
-                        color: 'blue',
-                        fillColor: '#cacaca',
-                        fillOpacity: 0.2
-                      })
-                      map.addLayer(marker);
-                      map.addLayer(you);
-                      document.getElementById(\"latitude\").value = e.latitude;
-                      document.getElementById(\"longitude\").value = e.longitude;
-                    })
-                    .on('locationerror', e => {
-                      console.log(\"No possible locate you :(\")
-                    });
-
-
-
-                  </script>")
-
-      )))
-
+;; POST HTML FORM
 (hunchentoot:define-easy-handler (field-form-post-handler :uri "/post/item")
     (item field)
   (with-login
@@ -404,20 +339,18 @@
              (new nil)
              (nfields (length (getf *config* :fields)))
              (current-field (nth field (getf *config* :fields)))
-             (current-item (nth item (getf *login* :entries))))
-        (let ((form (forms:find-form current-field)))
-          (forms:handle-request form)
-          (forms:fill-model-from-form form current-item)
-          (setf (getf current-item 'edited) t)
-          (hunchentoot:redirect (item-field-path :item item :field field))))))
+             )
+        (symbol-macrolet ((current-item (nth item (getf *login* :entries))))
+          (let ((form (forms:find-form current-field)))
+            (forms:handle-request form)
+            (forms:fill-model-from-form form current-item)
+            (setf (getf current-item 'edited) t)
+            (hunchentoot:redirect (item-field-path :item item :field field)))))))
 
 
-
-
+;; GET HTML FORM
 (hunchentoot:define-easy-handler (field-form-handler :uri "/home/item")
     (item field)
-  ;; (setf (hunchentoot:content-type*) "text/html")
-  ;; (format t "~%~%:item ~a :field ~a~%~%" item field)
   (with-login
       (let* ((item (parse-integer item))
              (field (parse-integer field))
@@ -427,30 +360,33 @@
         (symbol-macrolet ((current-item (nth item (getf *login* :entries))))
           ;; (setf (getf (nth item (getf *login* :entries)) 'seen) t)
           (setf (getf current-item 'seen) t)
-          (property-page
+          (let ((form (forms:find-form current-field)))
+            (property-page
 
-              (:title (format nil "~@(~a~)" current-field)
-               :item item
-               :field field
-               :current-item current-item
-               :fields fields
-               :nfields nfields)
+                (:title (format nil "~@(~a~)" current-field)
+                 :item item
+                 :field field
+                 :current-item current-item
+                 :fields fields
+                 :nfields nfields)
 
-              (:h3 (who:str (funcall *list-item-formater* current-item)))
-              (:div :class ""
-                    :scrolling "yes"
+                (:h2 (who:str (forms::form-name form)))
+                (:h3 (who:str (funcall *list-item-formater* current-item)))
+                (:div :class ""
+                      :scrolling "yes"
 
-                    #+remember-debug
-                    (:code
-                     :rows "10" :cols "120"
-                     (who:str (format nil (concatenate 'string
-                                                       "nfields = ~a<br>"
-                                                       "field = ~a<br><br>"
-                                                       "~{~a ↔ ~a~^<br>~}")
-                                      current-field
-                                      nfields
-                                      current-item)))
-                    (let ((form (forms:find-form current-field)))
+                      #+remember-debug
+                      (:code
+                       :rows "10" :cols "120"
+                       (who:str (format nil (concatenate 'string
+                                                         "nfields = ~a<br>"
+                                                         "field = ~a<br><br>"
+                                                         "~{~a ↔ ~a~^<br>~}")
+                                        current-field
+                                        nfields
+                                        current-item)))
+                      (:br)
+
                       (setf (forms::form-action form)
                             (item-field-post-path :item item
                                                   :field field))

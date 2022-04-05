@@ -13,6 +13,8 @@
     .
     "sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ"))
 
+(defparameter *form-name* "property-form")
+
 (defun main-navigation ()
   (who:with-html-output-to-string (s)
     (:nav :class "navbar navbar-expand-lg navbar-light bg-light"
@@ -27,16 +29,18 @@
                          :aria-label "Toggle navigation"
                          (:span :class "navbar-toggler-icon"))
                 (:div :class "collapse navbar-collapse"
-                      :id "navbarSupportedContent")
-                (:ul :class "navbar-nav me-auto mb-2 mb-lg-0"
-                     (:li :class "nav-item"
-                          (:a :class "nav-link" :aria-current "page" :href "/"
-                              (:i :class "fa fa-home")
-                              "Home"))
-                     (:li :class "nav-item"
-                          (:a :class "nav-link" :href "/logout"
-                              (:i :class "fa fa-sign-out"
-                                  "Logout"))))))))
+                      :id "navbarSupportedContent"
+                      (:ul :class "navbar-nav me-auto mb-2 mb-lg-0"
+                           (:li :class "nav-item"
+                                (:a :class "nav-link"
+                                    :aria-current "page"
+                                    :href "/"
+                                    (:i :class "fa fa-home")
+                                    "Home"))
+                           (:li :class "nav-item"
+                                (:a :class "nav-link" :href "/logout"
+                                    (:i :class "fa fa-sign-out"
+                                        "Logout")))))))))
 
 (defmacro main-page ((&key title footer) &rest body)
   `(who:with-html-output-to-string (,(gensym))
@@ -90,7 +94,9 @@
                                            (who:str field))
                                       ))))))
 
-      (:div :class "navbar navbar-light bg-light"
+      ;; todo improve this
+      (:br) (:br) (:br) (:br)
+      (:div :class "navbar navbar-light bg-light fixed-bottom"
             (:div :class "container-fluid"
                   (:div :class "btn-group"
                         (:a :href "#field-list"
@@ -108,14 +114,16 @@
                             :tabindex "-1"
                             :class (format nil "btn btn-warning ~a"
                                            (if (= field 0) "disabled" ""))
-                            "⇐ prev"))
+                            (:i :class "fa fa-angle-left")
+                            " prev"))
 
                   (:button :class (if (getf current-item 'edited)
                                       "btn btn-success"
                                       "btn btn-danger")
-                           :form "property-form"
+                           :form *form-name*
                            :type "submit"
-                           "Submit")
+                           (:i :class "fa fa-bolt")
+                           " Submit")
 
                   (:div :class "btn-group"
                         (if (< (1+ field) nfields)
@@ -124,7 +132,8 @@
                                    :role "button"
                                    :tabindex "-1"
                                    :class "btn fixed-left btn-info"
-                                   "next ⇒"))
+                                   "next "
+                                   (:i :class "fa fa-angle-right")))
                       (who:htm (:a :href (item-list-path :item item)
                                    :role "button"
                                    :tabindex "-1"
