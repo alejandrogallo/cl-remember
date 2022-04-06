@@ -21,7 +21,7 @@
 (defvar *entry-schema* nil)
 
 
-(let ((default-date '(day 0 month 0 year 0 text "")))
+(let ((default-date '(day 42 month 42 year 1942 text "")))
   (setq *entry-schema*
         `((:name first-name :init "")
           (:name given-name :init "")
@@ -35,6 +35,7 @@
           (:name is-the-gravestone-readable :init t)
           (:name is-the-gravestone-standing :init t)
           (:name geolocation :init (LATITUDE 48.27061 LONGITUDE 16.4167))
+          (:name pictures :init ())
           (:name comments :init ""))))
 
 (defvar *prepare-item-function* nil)
@@ -106,7 +107,7 @@
                             #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
                             #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
                             #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#)))
-      (:name "Group 2"
+      #+nil(:name "Group 2"
        :password "group2"
        :entries ,(read-entries-from-file #P"data/login-1.lisp")))))
 
@@ -182,7 +183,17 @@
                                      (:a :href (item-create-path :item i)
                                          (~badge "success"
                                                  (%icon "plus")))
-                                     )))))))))))
+                                     ))))))
+          ;; javascript
+          (:script (who:str
+                    (ps:ps
+                      (defun mark-active ()
+                        (let* ((id (ps:chain location href (match (ps:regex "#(.*)")) 1))
+                               (el (ps:chain document (get-element-by-id id) )))
+                          (when el
+                            (ps:chain el class-list (add "list-group-item-info"))
+                            el)))
+                      (mark-active)))))))))
 
 
 
@@ -249,10 +260,21 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defparameter *config*
-  '(:port 9001
+  `(:port 9001
+    :pictures-path ,(uiop:truenamize "./pictures/")
     :fields (person-name
              questionnaire
-             geolocation)))
+             date-of-death
+             date-of-birth
+             all-dates
+             geolocation
+             pictures)))
+
+(push (hunchentoot:create-folder-dispatcher-and-handler
+       "/static/"
+       (getf *config* :pictures-path)
+       "image/")
+      hunchentoot:*dispatch-table*)
 
 (defgeneric render-form (form name))
 (defmethod render-form (form name)
@@ -261,8 +283,77 @@
       (forms:with-form-renderer :who
         (forms:render-form form)))))
 
+(make-date-form date-of-death)
+(make-date-form date-of-birth)
+
 (flet ((reader (what) (lambda (entry) (getf entry what)))
        (writer (what) (lambda (value entry) (setf (getf entry what) value))))
+
+  (defun handle-picture-upload (file-field)
+    (let* ((new-file-name (create-random-token))
+           (new-path (merge-pathnames new-file-name
+                                      (getf *config* :pictures-path))))
+      (hunchentoot:log-message* 0 "~%Saving picture ~a to ~a~%"
+                                (forms::file-path file-field) new-path)
+      (uiop:copy-file (forms::file-path file-field)
+                      (ensure-directories-exist new-path))
+      (setf (forms::file-path file-field) new-path)
+      (setf (forms::file-name file-field) new-file-name)))
+
+  (forms:defform pictures (:id *form-name*
+                           :enctype "multipart/form-data")
+    ((pictures :list
+               :type (list :file
+                           :multiple-p t
+                           :accept "image/"
+                           :upload-handler 'handle-picture-upload)
+               :add-button t
+               :remove-button t
+               :label "Pictures"
+               :reader (reader 'pictures)
+               :writer (lambda (value entry)
+                         (when (and value (car value))
+                           (hunchentoot:log-message* 0 "Getting file ~a to put in object" value)
+                           (push (car value) (getf entry 'pictures)))
+                         #+nil(setf (getf entry 'pictures)
+                               (append value (getf entry 'picture))))
+               )))
+
+
+  (defmethod render-form (form (name (eql 'pictures)))
+    (let ((pictures-list (car (forms::form-fields form))))
+      (print 'aaaaaaaaaaaaaaaaaaa)
+      (print (forms::field-value (cdr pictures-list)))
+      (print 'aaaaaaaaaaaaaaaaaaa)
+      (flet ((field-name (i) (format nil "pictures[~a].pictures" i)))
+        (who:with-html-output-to-string (forms.who:*html*)
+          (:h3 (:i :class "fa fa-camera"))
+          (:form :action (forms::form-action form)
+                 :method (forms::form-method form)
+                 :enctype "multipart/form-data"
+                 :id (forms::form-id form)
+                 (:input :type "file"
+                         :class "form-control"
+                         :id "penis"
+                         :accept "image/"
+                         :name (field-name 0)
+                         :capture "camera")
+                 (:div :class "row row-cols-md-2 g-4"
+                       (:div :class "col"
+                             (loop for field in (forms::field-value (cdr pictures-list))
+                                   for i from 0
+                                   do (who:htm
+                                       (:div :class "card"
+                                             (:a :href (format nil "/static/~a" (forms::file-name field))
+                                                 (:img :src (format nil "/static/~a" (forms::file-name field))
+                                                       :class "card-img-top"))
+                                             ))))))
+          #+nil
+          (forms:with-form-theme 'forms.who:bootstrap-form-theme
+            (forms:with-form-renderer :who
+              (who:str (forms:render-form form))))))))
+
+
   (forms:defform person-name (:id *form-name*)
     ((first-name :string
                  :writer (writer 'first-name)
@@ -272,6 +363,7 @@
                   :writer (writer 'family-name)
                   :reader (reader 'family-name)
                   :label "Family name")
+     ;; (death-date :subform :subform 'date)
      (group :integer
             :label "Group"
             :writer (writer 'group)
@@ -338,8 +430,8 @@
              (field (parse-integer field))
              (new nil)
              (nfields (length (getf *config* :fields)))
-             (current-field (nth field (getf *config* :fields)))
-             )
+             (current-field (nth field (getf *config* :fields))))
+        (format t "~2%:posting ========~%")
         (symbol-macrolet ((current-item (nth item (getf *login* :entries))))
           (let ((form (forms:find-form current-field)))
             (forms:handle-request form)
@@ -373,9 +465,8 @@
                 (:h2 (who:str (forms::form-name form)))
                 (:h3 (who:str (funcall *list-item-formater* current-item)))
                 (:div :class ""
-                      :scrolling "yes"
 
-                      #+remember-debug
+                      #+remember-debugg
                       (:code
                        :rows "10" :cols "120"
                        (who:str (format nil (concatenate 'string
@@ -390,7 +481,6 @@
                       (setf (forms::form-action form)
                             (item-field-post-path :item item
                                                   :field field))
-                      (print (list :====== :=====))
                       (print (forms:fill-form-from-model form
                                                          current-item))
                       (who:str (render-form form current-field)))))))))
