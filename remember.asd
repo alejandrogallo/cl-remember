@@ -21,6 +21,6 @@
                (:file "login")
                (:file "routes")
                (:file "templates")
-               (:file "templates/image")
+               (:file "templates/date")
                (:file "templates/geolocation")
                (:file "remember")))

@@ -27,7 +27,6 @@
           (:name given-name :init "")
           (:name date-of-birth :init ,default-date)
           (:name date-of-death :init ,default-date)
-          (:name date-of-funeral :init ,default-date)
           (:name group :init 0)
           (:name row :init 0)
           (:name gravestone-number :init 0)
@@ -159,7 +158,7 @@
                                                         *list-item-formater*
                                                         entry))))
                                     (:div
-                                     (if (getf entry 'picture-paths)
+                                     (if (getf entry 'pictures)
                                          (~badge "success" (%icon "camera"))
                                          (~badge "danger" (%icon "camera")))
                                      (if (getf entry 'is-new)
@@ -266,7 +265,6 @@
              questionnaire
              date-of-death
              date-of-birth
-             all-dates
              geolocation
              pictures)))
 
@@ -342,12 +340,15 @@
                        (:div :class "col"
                              (loop for field in (forms::field-value (cdr pictures-list))
                                    for i from 0
-                                   do (who:htm
-                                       (:div :class "card"
-                                             (:a :href (format nil "/static/~a" (forms::file-name field))
-                                                 (:img :src (format nil "/static/~a" (forms::file-name field))
-                                                       :class "card-img-top"))
-                                             ))))))
+                                   do (let ((path (typecase field
+                                                    (string field)
+                                                    (t (forms::field-name field)))))
+                                        (who:htm
+                                         (:div :class "card"
+                                               (:a :href (format nil "/static/~a" path)
+                                                   (:img :src (format nil "/static/~a" path)
+                                                         :class "card-img-top"))
+                                               )))))))
           #+nil
           (forms:with-form-theme 'forms.who:bootstrap-form-theme
             (forms:with-form-renderer :who
