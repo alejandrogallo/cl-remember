@@ -1,117 +1,18 @@
-;;;; remember.lisp
-
 (in-package #:remember)
 
-#|
-
-((:first-name ""))
-
-|#
-
-
-(defparameter *no-image-url*
-  "https://longwoodgardens.org/sites/default/files/highlight_images/76758.jpg")
-
-
-
-
-(defvar *acceptor* (make-instance 'hunchentoot:easy-acceptor
-                                  :port 9000))
-
+(defvar *logins* nil)
+(defvar *acceptor* nil)
 (defvar *entry-schema* nil)
-
-
-(let ((default-date '(day 42 month 42 year 1942 text "")))
-  (setq *entry-schema*
-        `((:name first-name :init "")
-          (:name given-name :init "")
-          (:name date-of-birth :init ,default-date)
-          (:name date-of-death :init ,default-date)
-          (:name group :init 0)
-          (:name row :init 0)
-          (:name gravestone-number :init 0)
-          (:name is-the-gravestone-there :init t)
-          (:name is-the-gravestone-readable :init t)
-          (:name is-the-gravestone-standing :init t)
-          (:name geolocation :init (LATITUDE 48.27061 LONGITUDE 16.4167))
-          (:name pictures :init ())
-          (:name comments :init ""))))
-
+(defvar *config* nil)
 (defvar *prepare-item-function* nil)
-(setq *prepare-item-function*
-      (lambda (entry)
-        (declare (optimize (debug 3)))
-        (let* ((schema-fields (mapcar (lambda (s) (getf s :name)) *entry-schema*))
-               (entry-fields (loop for i in entry by #'cddr collect i))
-               (missing-fields (set-difference schema-fields entry-fields)))
-          (loop for field in missing-fields
-                do (setf (getf entry field)
-                         (copy-tree (getf (find field *entry-schema*
-                                                :key (lambda (f) (getf f :name)))
-                                          :init))))
-          entry)))
-
 (defvar *list-item-formater*)
-(setq *list-item-formater*
-      (lambda (item)
-        (who:with-html-output-to-string (s)
-          (:h5 (who:str (format nil "<b>~a</b>, ~a"
-                                (getf item 'family-name)
-                                (getf item 'first-name))))
-          (:div :class "btn-group"
-                (:button :class "btn btn-outline-success" :type "button"
-                         "Group")
-                (:button :class "btn btn-success"
-                         (who:str (getf item 'group)))
-                (:button :class "btn btn-outline-primary" :type "button"
-                         "Row")
-                (:button :class "btn btn-primary"
-                         (who:str (getf item 'row)))
-                #+img
-                (:img :src (if (getf item 'picture-paths)
-                               (car (getf item 'picture-paths))
-                               *no-image-url*)
-                      :width "64"
-                      :class "img-fluid rounded")))))
 
 (defun read-entries-from-file (path)
   (declare (type pathname path))
   (with-open-file (s path :direction :input)
     (read s)))
 
-(let  ((row 0))
-  (defparameter *logins*
-    `((:name "Group 1"
-       :password "group1"
-       :entries ,(mapcar *prepare-item-function*
-                          `(#1=(first-name "Gallo"
-                                edited nil
-                                family-name "Alejandro"
-                                group ,(random (incf row))
-                                row ,(random row))
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                            #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#)))
-      #+nil(:name "Group 2"
-       :password "group2"
-       :entries ,(read-entries-from-file #P"data/login-1.lisp")))))
-
-
-
+;; (load "config.lisp")
 
 (hunchentoot:define-easy-handler (logout-handler :uri "/logout") ()
   (with-login
@@ -258,21 +159,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter *config*
-  `(:port 9001
-    :pictures-path ,(uiop:truenamize "./pictures/")
-    :fields (person-name
-             questionnaire
-             date-of-death
-             date-of-birth
-             geolocation
-             pictures)))
-
-(push (hunchentoot:create-folder-dispatcher-and-handler
-       "/static/"
-       (getf *config* :pictures-path)
-       "image/")
-      hunchentoot:*dispatch-table*)
 
 (defgeneric render-form (form name))
 (defmethod render-form (form name)
@@ -280,9 +166,6 @@
     (forms:with-form-theme 'forms.who:bootstrap-form-theme
       (forms:with-form-renderer :who
         (forms:render-form form)))))
-
-(make-date-form date-of-death)
-(make-date-form date-of-birth)
 
 (flet ((reader (what) (lambda (entry) (getf entry what)))
        (writer (what) (lambda (value entry) (setf (getf entry what) value))))
@@ -297,6 +180,7 @@
                       (ensure-directories-exist new-path))
       (setf (forms::file-path file-field) new-path)
       (setf (forms::file-name file-field) new-file-name)))
+
 
   (forms:defform pictures (:id *form-name*
                            :enctype "multipart/form-data")
@@ -332,7 +216,6 @@
                  :id (forms::form-id form)
                  (:input :type "file"
                          :class "form-control"
-                         :id "penis"
                          :accept "image/"
                          :name (field-name 0)
                          :capture "camera")

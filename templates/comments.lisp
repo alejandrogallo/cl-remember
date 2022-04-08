@@ -17,11 +17,8 @@
         (:form :action (forms::form-action form)
                :method (forms::form-method form)
                :id (forms::form-id form)
-               (:textarea ;; :type "text"
-                :placeholder "Do you have some comments to note?"
-                :class "form-control"
-                :name (string-downcase (forms::field-name comment))
-                ;; :value (string-downcase (forms::field-name comment))
-                :rows "10"
-                (who:str (forms::field-value comment)))
-               (who:str (forms::field-value comment)))))))
+               (:textarea :placeholder "Do you have some comments to note?"
+                          :class "form-control"
+                          :name (string-downcase (forms::field-name comment))
+                          :rows "10"
+                          (who:str (forms::field-value comment))))))))
