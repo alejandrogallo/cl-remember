@@ -1,2 +1,2 @@
 *.fasl
-/.templates.lisp.~undo-tree~
+.*~undo-tree~
