@@ -21,7 +21,7 @@
                (:file "login")
                (:file "routes")
                (:file "templates")
-               (:file "templates/pictures.lisp")
+               (:file "templates/pictures")
                (:file "templates/comments")
                (:file "templates/date")
                (:file "templates/geolocation")

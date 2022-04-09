@@ -34,21 +34,23 @@
 
 (defmethod render-form (form (name (eql 'pictures)))
   (let ((pictures-list (car (forms::form-fields form))))
-    (print 'aaaaaaaaaaaaaaaaaaa)
     (print (forms::field-value (cdr pictures-list)))
-    (print 'aaaaaaaaaaaaaaaaaaa)
     (flet ((field-name (i) (format nil "pictures[~a].pictures" i)))
       (who:with-html-output-to-string (forms.who:*html*)
-        (:h3 (:i :class "fa fa-camera"))
         (:form :action (forms::form-action form)
                :method (forms::form-method form)
                :enctype "multipart/form-data"
                :id (forms::form-id form)
+               (:label :for "camera-input"
+                       (:h1 (:i :class "fa fa-camera")))
                (:input :type "file"
+                       :id "camera-input"
                        :class "form-control"
-                       :accept "image/"
+                       :accept "image/*"
                        :name (field-name 0)
-                       :capture "camera")
+                       ;; if only camera, then do this
+                       ;; :capture "camera"
+                       )
                (:div :class "row row-cols-md-2 g-4"
                      (:div :class "col"
                            (loop for field in (forms::field-value (cdr pictures-list))
@@ -58,11 +60,9 @@
                                                   (pathname field)
                                                   (t (forms::field-name field)))))
                                       (who:htm
-                                       (:div :class "card"
-                                             (:a :href (format nil "/static/~a" path)
+                                       (:a :href (format nil "/static/~a" path)
                                                  (:img :src (format nil "/static/~a" path)
-                                                       :class "card-img-top"))
-                                             )))))))
+                                                       :class "rounded img-thumbnail"))))))))
         #+nil
         (forms:with-form-theme 'forms.who:bootstrap-form-theme
           (forms:with-form-renderer :who

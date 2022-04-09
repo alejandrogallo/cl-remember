@@ -6,6 +6,10 @@
 (defvar *config* nil)
 (defvar *prepare-item-function* nil)
 (defvar *list-item-formater*)
+(defvar *create-new-item-function*)
+(defvar *sort-entries-function* nil)
+(defvar *create-id-function* nil
+  "Should be a function of entries and entry")
 
 (defun read-entries-from-file (path)
   (declare (type pathname path))
@@ -44,8 +48,9 @@
           ;; (who:fmt "~a <br> ~s" (logged-in-p) *login*)
           (:div :class "container vertical-scrollable"
                 :style "{overflow-y: scroll}"
-                (:ul :class "list-group list-group-numbered"
-                     (loop for entry in entries
+                (:ul :class "list-group"
+                     (loop for entry in (progn (funcall *sort-entries-function* entries)
+                                               entries)
                            for i from 0
                            do (who:htm
                                (:li :class "list-group-item d-flex
@@ -57,33 +62,33 @@
                                               :href (item-field-path :item i)
                                               (who:str (funcall
                                                         *list-item-formater*
-                                                        entry))))
-                                    (:div
-                                     (if (getf entry 'pictures)
-                                         (~badge "success" (%icon "camera"))
-                                         (~badge "danger" (%icon "camera")))
-                                     (if (getf entry 'is-new)
-                                         (~badge "info"
-                                                 (%icon "plus-square")
-                                                 (%on-sm " NEW")))
-                                     (if (getf entry 'seen)
-                                         (~badge "success"
-                                                 (%icon "eye")
-                                                 (%on-sm " SEEN"))
-                                         (~badge "danger"
-                                                 (%icon "eye-slash")
-                                                 (%on-sm " UNSEEN")))
-                                     (if (getf entry 'edited)
-                                         (~badge "success"
-                                                 (%icon "check-square-o")
-                                                 (%on-sm " EDITED"))
-                                         (~badge "warning"
-                                                 (%icon "square-o")
-                                                 (%on-sm " UNEDITED")))
-                                     (:a :href (item-create-path :item i)
-                                         (~badge "success"
-                                                 (%icon "plus")))
-                                     ))))))
+                                                        entry)))
+                                          (:div
+                                           (if (getf entry 'pictures)
+                                               (~badge "success" (%icon "camera"))
+                                               (~badge "danger" (%icon "camera")))
+                                           (if (getf entry 'is-new)
+                                               (~badge "info"
+                                                       (%icon "plus-square")
+                                                       (%on-sm " NEW")))
+                                           (if (getf entry 'seen)
+                                               (~badge "success"
+                                                       (%icon "eye")
+                                                       (%on-sm " SEEN"))
+                                               (~badge "danger"
+                                                       (%icon "eye-slash")
+                                                       (%on-sm " UNSEEN")))
+                                           (if (getf entry 'edited)
+                                               (~badge "success"
+                                                       (%icon "check-square-o")
+                                                       (%on-sm " EDITED"))
+                                               (~badge "warning"
+                                                       (%icon "square-o")
+                                                       (%on-sm " UNEDITED")))
+                                           (:a :href (item-create-path :item i)
+                                               (~badge "success"
+                                                       (%icon "plus")))
+                                           )))))))
           ;; javascript
           (:script (who:str
                     (ps:ps
@@ -150,11 +155,11 @@
   (with-login
       (let* ((item (parse-integer item))
              (current-item (nth item (getf *login* :entries)))
-             (copy-item (copy-tree current-item)))
+             (copy-item (funcall *create-new-item-function* current-item)))
         (setf (getf copy-item 'is-new) t)
         (nconc (getf *login* :entries) (list copy-item))
         (hunchentoot:redirect (item-list-id
-                               :item (- (length (getf *login* :entries)) 1))))))
+                               :item (1+ item))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -187,7 +192,11 @@
      (row :integer
           :label "Row"
           :writer (writer 'row)
-          :reader (reader 'row))))
+          :reader (reader 'row))
+     (gravestone-number :integer
+          :label "Grave"
+          :writer (writer 'gravestone-number)
+          :reader (reader 'gravestone-number))))
 
   (forms:defform questionnaire (:id *form-name*)
     ((is-the-gravestone-there :boolean
@@ -277,6 +286,18 @@
                  :current-item current-item
                  :fields fields
                  :nfields nfields)
+
+                ;; probressbar
+                (let ((current (float (* 100 (/ (1+ field) (length fields))))))
+                  (who:htm
+                   (:div :class "progress"
+                         (:div :class "progress-bar"
+                               :role "progressbar"
+                               :style (format nil "width: ~d%" current)
+                               :aria-valuenow "25"
+                               :aria-valuemin "0"
+                               :aria-valuemax "100"))))
+                (:br)
 
                 (:h2 (who:str (forms::form-name form)))
                 (:h3 (who:str (funcall *list-item-formater* current-item)))

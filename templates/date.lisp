@@ -26,6 +26,15 @@
               :writer ,(writer name 'year)
               :accessor ,(reader name 'year)
               :reader ,(reader name 'year))
+        #+nil
         (text :string
               :label "Text"
-              :disabled-p t)))))
+              :disabled-p t)
+        (comment :string
+                 :label "Comment"
+                 :reader ,(reader name 'comment)
+                 :writer ,(writer name 'comment))
+        (hebrew-date :string
+                     :reader ,(reader name 'hebrew-date)
+                     :writer ,(writer name 'hebrew-date)
+                     :label "Hebrew date")))))

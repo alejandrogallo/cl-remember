@@ -19,7 +19,7 @@
   (who:with-html-output-to-string (s)
     (:nav :class "navbar navbar-expand-lg navbar-light bg-light"
           (:div :class "container-fluid"
-                (:a :href "#" :class "navbar-brand" "Remember")
+                (:a :href "#" :class "navbar-brand" "re:Member")
                 (:button :class "navbar-toggler"
                          :type "button"
                          :data-bs-toggle "collapse"
@@ -95,6 +95,7 @@
                                       ))))))
 
       ;; todo improve this
+      (:br) (:br) (:br) (:br)
       (:br) (:br) (:br) (:br)
       (:div :class "navbar navbar-light bg-light fixed-bottom"
             (:div :class "container-fluid"

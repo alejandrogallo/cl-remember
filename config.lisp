@@ -7,7 +7,7 @@
              questionnaire
              date-of-death
              date-of-birth
-             geolocation
+             ;; geolocation
              pictures
              comments)))
 
@@ -24,7 +24,9 @@
        "image/")
       hunchentoot:*dispatch-table*)
 
-(let ((default-date '(day 42 month 42 year 1942 text "")))
+(let ((default-date '(day 42 month 42 year 1942 text ""
+                      comment ""
+                      hebrew-date "")))
   (setq *entry-schema*
         `((:name first-name :init "")
           (:name family-name :init "")
@@ -53,6 +55,39 @@
                                           :init))))
           entry)))
 
+(setq *create-new-item-function*
+      (lambda (entry)
+        (let ((new-item (funcall *prepare-item-function* nil)))
+          (setf (getf new-item 'first-name) "???")
+          (setf (getf new-item 'family-name) "???")
+          (setf (getf new-item 'gravestone-number) (getf entry 'gravestone-number))
+          (setf (getf new-item 'row) (getf entry 'row))
+          (setf (getf new-item 'group) (getf entry 'group))
+          new-item)))
+
+(setq *sort-entries-function*
+      (labels ((ensure-number (l) (typecase l
+                                    (string (parse-integer l :junk-allowed t))
+                                    (t l)))
+               (sort-according-to (what &optional respect &key (type :integer))
+                 (lambda (entry-1 entry-2)
+                   (and (if respect (eq (getf entry-1 respect)
+                                        (getf entry-2 respect))
+                            t)
+                        (case type
+                          (:string (string> (getf entry-1 what)
+                                            (getf entry-2 what)))
+                          (:integer (< (ensure-number (getf entry-1 what))
+                                       (ensure-number (getf entry-2 what)))))))))
+        (lambda (entries)
+          (sort entries (sort-according-to 'group))
+          (sort entries (sort-according-to 'row 'group))
+          (sort entries (sort-according-to 'gravestone-number 'row))
+          (sort entries (sort-according-to 'first-name 'gravestone-number
+                                           :type :string))
+          entries)))
+
+(defvar *cementery-name* "Fl.")
 (setq *list-item-formater*
       (lambda (item)
         (who:with-html-output-to-string (s)
@@ -60,55 +95,61 @@
                                 (getf item 'family-name)
                                 (getf item 'first-name))))
           (:div :class "btn-group"
-                (:button :class "btn btn-outline-success" :type "button"
-                         "Group")
-                (:button :class "btn btn-success"
+                (:button :class "btn btn-outline-info" :type "button"
+                         (who:str *cementery-name*))
+                (:button :class "btn btn-success" :type "button"
+                         "Group"
+                         (:br)
                          (who:str (getf item 'group)))
-                (:button :class "btn btn-outline-primary" :type "button"
-                         "Row")
-                (:button :class "btn btn-primary"
+                (:button :class "btn btn-primary" :type "button"
+                         "Row"
+                         (:br)
                          (who:str (getf item 'row)))
+                (:button :class "btn btn-warning" :type "button"
+                               "Grave" (:br)
+                               (who:str (getf item 'gravestone-number)))
                 #+img
                 (:img :src (if (getf item 'picture-paths)
                                (car (getf item 'picture-paths))
                                *no-image-url*)
                       :width "64"
-                      :class "img-fluid rounded")))))
+                      :class "img-fluid rounded"))
+          )))
 (flet
     ((group (n)
        `(:name ,(format nil "Group ~a" n)
-         :password ,(format nil "group~a" n)
-         :entries ,(read-entries-from-file
+         :password ,(format nil "~a" n)
+         :entries ,(mapcar *create-id-function* (read-entries-from-file
                     (make-pathname
                      :name
-                     (format nil "florisdorf/data/Group-~a.lisp" n))))))
+                     (format nil "florisdorf/data/Group-~a.lisp" n)))))))
   (let  ((row 0))
     (defparameter *logins*
-      `((:name "Alejandro Group"
-         :password "alejandro"
+      `((:name "Test group"
+         :password "0"
          :entries ,(mapcar *prepare-item-function*
-                           `(#1=(first-name "Gallo"
+                           `(#1=(first-name "Hans"
                                             edited nil
-                                            family-name "Alejandro"
-                                            group ,(random (incf row))
-                                            row ,(random row))
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1# #1#)))
+                                            family-name "Musterperson"
+                                            group ,(random 20)
+                                            row ,(random 20))
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                #1# #1# #1# #1# #1# #1# #1# #1# #1#)))
         ,(group 3)
         ,(group 4)
         ,(group 5)
