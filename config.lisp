@@ -2,7 +2,7 @@
 
 (defparameter *config*
   `(:port 9000
-    :pictures-path ,(uiop:truenamize "./pictures/")
+    :pictures-path ,(uiop:truenamize "florisdorf/data/")
     :fields (person-name
              questionnaire
              date-of-death
