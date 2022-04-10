@@ -3,7 +3,7 @@
 (setq *config*
   `(:port 9000
     :pictures-path ,(uiop:truenamize "florisdorf/data/")
-    :out-path ,(uiop:truenamize "out/")
+    :out-path ,(uiop:truenamize "florisdorf/out/")
     :fields (person-name
              questionnaire
              date-of-death
@@ -130,7 +130,7 @@
          :entries ,(read-entries-from-file
                     (make-pathname
                      :name
-                     (format nil "florisdorf/data/Group-~a.lisp" n))))))
+                     (format nil "florisdorf/in/Group-~a.lisp" n))))))
   (let  ((row 0))
     (setq *logins*
       `((:name "Test group"
