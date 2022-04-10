@@ -13,6 +13,9 @@
     .
     "sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ"))
 
+(defparameter *animate-css*
+  "https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css")
+
 (defparameter *form-name* "property-form")
 
 (defun main-navigation ()
@@ -49,6 +52,8 @@
                    (:meta :name "apple-mobile-web-app-capable" :content "yes")
                    (:meta :name "viewport"
                           :content "width=device-width, initial-scale=1")
+                   (:link :href *animate-css*
+                          :rel "stylesheet")
                    (:link :href *fa-css*
                           :rel "stylesheet")
                    (:link :href (car *ba-css*)
@@ -118,10 +123,12 @@
                             (:i :class "fa fa-angle-left")
                             " prev"))
 
-                  (:button :class (if (getf current-item 'edited)
-                                      "btn btn-success"
-                                      "btn btn-danger")
+                  (:button :class "btn
+                                   btn-success
+                                   animate__animated
+                                   animate__infinite"
                            :form *form-name*
+                           :id "footer-submit"
                            :type "submit"
                            (:i :class "fa fa-bolt")
                            " Submit")

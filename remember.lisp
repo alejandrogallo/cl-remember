@@ -8,6 +8,8 @@
 (defvar *list-item-formater*)
 (defvar *create-new-item-function*)
 (defvar *sort-entries-function* nil)
+
+;; TODO
 (defvar *create-id-function* nil
   "Should be a function of entries and entry")
 
@@ -298,6 +300,47 @@
                                :aria-valuemin "0"
                                :aria-valuemax "100"))))
                 (:br)
+
+                (:script
+                 (who:str
+                  (ps
+                    (defvar remember-inputs-changed nil)
+
+                    (defmacro on! (el trigger fn)
+                      `(chain ,el (add-event-listener ,trigger ,fn)))
+
+                    (defun rb-get-inputs ()
+                      (chain document (query-selector-all "input, textarea")))
+
+                    (defun rb-get-submit ()
+                      (chain document (get-element-by-id "footer-submit")))
+
+                    (defun rb-on-changed (event)
+                      (chain console (log (+ "changing"
+                                             event)))
+                      (setq remember-inputs-changed t)
+                      (let ((submit (rb-get-submit)))
+                        (chain submit class-list
+                               (add "animate__headShake"))))
+
+                    (defun rb-setup-input-elements ()
+                      (let ((inputs (rb-get-inputs)))
+                        (loop for input in inputs
+                              do (chain console (log (+ "changing "
+                                                        input)))
+                                 (on! input "input" #'rb-on-changed))))
+
+                    (defun rb-init ()
+                      (let ((submit (rb-get-submit)))
+                        (on! submit "click"
+                             (lambda () (setq remember-inputs-changed nil))))
+                      (rb-setup-input-elements))
+
+                    (setf (@ window onload)
+                          #'rb-init)
+
+                    (setf (@ window onbeforeunload)
+                          (lambda () remember-inputs-changed)))))
 
                 (:h2 (who:str (forms::form-name form)))
                 (:h3 (who:str (funcall *list-item-formater* current-item)))

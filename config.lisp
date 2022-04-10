@@ -1,6 +1,6 @@
 (in-package :remember)
 
-(defparameter *config*
+(setq *config*
   `(:port 9000
     :pictures-path ,(uiop:truenamize "florisdorf/data/")
     :fields (person-name
@@ -119,12 +119,12 @@
     ((group (n)
        `(:name ,(format nil "Group ~a" n)
          :password ,(format nil "~a" n)
-         :entries ,(mapcar *create-id-function* (read-entries-from-file
+         :entries ,(read-entries-from-file
                     (make-pathname
                      :name
-                     (format nil "florisdorf/data/Group-~a.lisp" n)))))))
+                     (format nil "florisdorf/data/Group-~a.lisp" n))))))
   (let  ((row 0))
-    (defparameter *logins*
+    (setq *logins*
       `((:name "Test group"
          :password "0"
          :entries ,(mapcar *prepare-item-function*
