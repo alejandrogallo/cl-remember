@@ -8,6 +8,8 @@
 (defvar *list-item-formater*)
 (defvar *create-new-item-function*)
 (defvar *sort-entries-function* nil)
+
+;; TODO
 (defvar *create-id-function* nil
   "Should be a function of entries and entry")
 
@@ -35,70 +37,78 @@
 
 (hunchentoot:define-easy-handler (home-handler :uri *home-handler-path*) ()
   (with-login
-    (setf (hunchentoot:content-type*) "text/html")
+      (setf (hunchentoot:content-type*) "text/html")
     (macrolet ((~badge (style &rest body)
                  `(who:htm (:span :class
                                   (format nil "badge bg-~a rounded-0" ,style)
                                   ,@body))))
-     (let ((entries (getf *login* :entries)))
-      (main-page
-          (:title "Home")
-          (:h1 (who:str (getf *login* :name)))
-          (:h3 (who:fmt "~a entries" (length entries)))
-          ;; (who:fmt "~a <br> ~s" (logged-in-p) *login*)
-          (:div :class "container vertical-scrollable"
-                :style "{overflow-y: scroll}"
-                (:ul :class "list-group"
-                     (loop for entry in (progn (funcall *sort-entries-function* entries)
-                                               entries)
-                           for i from 0
-                           do (who:htm
-                               (:li :class "list-group-item d-flex
+      (let ((entries (getf *login* :entries)))
+        (main-page
+            (:title "Home")
+            (:h1 (who:str (getf *login* :name)))
+            (:h3 (who:fmt "~a entries" (length entries)))
+            ;; (who:fmt "~a <br> ~s" (logged-in-p) *login*)
+            (:div :class "container vertical-scrollable"
+                  :style "{overflow-y: scroll}"
+                  (:ul :class "list-group"
+                       (loop for entry in (progn (funcall *sort-entries-function* entries)
+                                                 entries)
+                             for i from 0
+                             do (who:htm
+                                 (:li :class "list-group-item d-flex
                                             justify-content-between
                                             align-items-start"
-                                    :id (format nil "item-~a" i)
-                                    (:div :class "ms-2 me-auto"
-                                          (:a :class ""
-                                              :href (item-field-path :item i)
-                                              (who:str (funcall
-                                                        *list-item-formater*
-                                                        entry)))
-                                          (:div
-                                           (if (getf entry 'pictures)
-                                               (~badge "success" (%icon "camera"))
-                                               (~badge "danger" (%icon "camera")))
-                                           (if (getf entry 'is-new)
-                                               (~badge "info"
-                                                       (%icon "plus-square")
-                                                       (%on-sm " NEW")))
-                                           (if (getf entry 'seen)
-                                               (~badge "success"
-                                                       (%icon "eye")
-                                                       (%on-sm " SEEN"))
-                                               (~badge "danger"
-                                                       (%icon "eye-slash")
-                                                       (%on-sm " UNSEEN")))
-                                           (if (getf entry 'edited)
-                                               (~badge "success"
-                                                       (%icon "check-square-o")
-                                                       (%on-sm " EDITED"))
-                                               (~badge "warning"
-                                                       (%icon "square-o")
-                                                       (%on-sm " UNEDITED")))
-                                           (:a :href (item-create-path :item i)
-                                               (~badge "success"
-                                                       (%icon "plus")))
-                                           )))))))
-          ;; javascript
-          (:script (who:str
-                    (ps:ps
-                      (defun mark-active ()
-                        (let* ((id (ps:chain location href (match (ps:regex "#(.*)")) 1))
-                               (el (ps:chain document (get-element-by-id id) )))
-                          (when el
-                            (ps:chain el class-list (add "list-group-item-info"))
-                            el)))
-                      (mark-active)))))))))
+                                      :id (format nil "item-~a" i)
+                                      (:div :class "ms-2 me-auto"
+                                            (:a :class ""
+                                                :href (item-field-path :item i)
+                                                (who:str (funcall
+                                                          *list-item-formater*
+                                                          entry)))
+                                            (:div
+                                             (if (getf entry 'pictures)
+                                                 (~badge "success" (%icon "camera"))
+                                                 (~badge "danger" (%icon "camera")))
+                                             (if (getf entry 'is-new)
+                                                 (~badge "info"
+                                                         (%icon "plus-square")
+                                                         (%on-sm " NEW")))
+                                             (if (getf entry 'seen)
+                                                 (~badge "success"
+                                                         (%icon "eye")
+                                                         (%on-sm " SEEN"))
+                                                 (~badge "danger"
+                                                         (%icon "eye-slash")
+                                                         (%on-sm " UNSEEN")))
+                                             (if (getf entry 'edited)
+                                                 (~badge "success"
+                                                         (%icon "check-square-o")
+                                                         (%on-sm " EDITED"))
+                                                 (~badge "warning"
+                                                         (%icon "square-o")
+                                                         (%on-sm " UNEDITED")))
+                                             (:a :href (item-create-path :item i)
+                                                 (~badge "success"
+                                                         (%icon "plus")))
+                                             )))))))
+            ;; javascript
+            (:script (who:str
+                      (ps
+                        ;; get id from the url
+                        (defun get-url-id ()
+                          (let* ((url-line (chain location href))
+                                 (m (chain url-line (match (regex "#(.*)")))))
+                            (when m
+                              (chain m 1))))
+
+                        (defun mark-active ()
+                          (let* ((id (get-url-id))
+                                 (el (chain document (get-element-by-id id) )))
+                            (when el
+                              (chain el class-list (add "list-group-item-info"))
+                              el)))
+                        ;; run the mark active function
+                        (mark-active)))))))))
 
 
 
@@ -264,6 +274,24 @@
             (setf (getf current-item 'edited) t)
             (hunchentoot:redirect (item-field-path :item item :field field)))))))
 
+;; POST SAVE
+(hunchentoot:define-easy-handler (saveall-handler :uri "/post/saveall") ()
+  (let ((out-path (getf *config* :out-path))
+        (i 0))
+    (loop for login in *logins*
+          do (let* ((cleaned (make-pathname
+                              :name (substitute #\- #\space
+                                                (getf login :name))))
+                    (login-out (ensure-directories-exist
+                                (merge-pathnames cleaned
+                                                 out-path))))
+               (incf i)
+               (with-open-file (s login-out :if-exists :supersede
+                                            :direction :output)
+                 (format t "~&Saving ~a" login-out)
+                 (format s "~s" (getf login :entries)))))
+    (format nil "~&succesfully saved ~a items~%" i)))
+
 
 ;; GET HTML FORM
 (hunchentoot:define-easy-handler (field-form-handler :uri "/home/item")
@@ -298,6 +326,47 @@
                                :aria-valuemin "0"
                                :aria-valuemax "100"))))
                 (:br)
+
+                (:script
+                 (who:str
+                  (ps
+                    (defvar remember-inputs-changed nil)
+
+                    (defmacro on! (el trigger fn)
+                      `(chain ,el (add-event-listener ,trigger ,fn)))
+
+                    (defun rb-get-inputs ()
+                      (chain document (query-selector-all "input, textarea")))
+
+                    (defun rb-get-submit ()
+                      (chain document (get-element-by-id "footer-submit")))
+
+                    (defun rb-on-changed (event)
+                      (chain console (log (+ "changing"
+                                             event)))
+                      (setq remember-inputs-changed t)
+                      (let ((submit (rb-get-submit)))
+                        (chain submit class-list
+                               (add "animate__headShake"))))
+
+                    (defun rb-setup-input-elements ()
+                      (let ((inputs (rb-get-inputs)))
+                        (loop for input in inputs
+                              do (chain console (log (+ "changing "
+                                                        input)))
+                                 (on! input "input" #'rb-on-changed))))
+
+                    (defun rb-init ()
+                      (let ((submit (rb-get-submit)))
+                        (on! submit "click"
+                             (lambda () (setq remember-inputs-changed nil))))
+                      (rb-setup-input-elements))
+
+                    (setf (@ window onload)
+                          #'rb-init)
+
+                    (setf (@ window onbeforeunload)
+                          (lambda () remember-inputs-changed)))))
 
                 (:h2 (who:str (forms::form-name form)))
                 (:h3 (who:str (funcall *list-item-formater* current-item)))

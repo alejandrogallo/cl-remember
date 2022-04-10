@@ -1,5 +1,5 @@
 ;;;; package.lisp
 
 (defpackage #:remember
-  (:use #:cl)
+  (:use #:cl #:parenscript)
   (:import-from #:anaphora #:awhen #:aif #:it))

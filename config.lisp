@@ -1,8 +1,9 @@
 (in-package :remember)
 
-(defparameter *config*
+(setq *config*
   `(:port 9000
     :pictures-path ,(uiop:truenamize "florisdorf/data/")
+    :out-path ,(uiop:truenamize "out/")
     :fields (person-name
              questionnaire
              date-of-death
@@ -69,22 +70,29 @@
       (labels ((ensure-number (l) (typecase l
                                     (string (parse-integer l :junk-allowed t))
                                     (t l)))
-               (sort-according-to (what &optional respect &key (type :integer))
+               (compare-if-non-nil (a b fn)
+                 (unless (or (null a) (null b))
+                   (funcall fn a b)))
+               (according-to (what &key keep (type :integer))
                  (lambda (entry-1 entry-2)
-                   (and (if respect (eq (getf entry-1 respect)
-                                        (getf entry-2 respect))
+                   (and (if keep (eq (getf entry-1 keep)
+                                     (getf entry-2 keep))
                             t)
                         (case type
-                          (:string (string> (getf entry-1 what)
-                                            (getf entry-2 what)))
-                          (:integer (< (ensure-number (getf entry-1 what))
-                                       (ensure-number (getf entry-2 what)))))))))
+                          (:string (compare-if-non-nil (getf entry-1 what)
+                                                       (getf entry-2 what)
+                                                       #'string>))
+                          (:integer (compare-if-non-nil
+                                     (ensure-number (getf entry-1 what))
+                                     (ensure-number (getf entry-2 what))
+                                     #'<)))))))
         (lambda (entries)
-          (sort entries (sort-according-to 'group))
-          (sort entries (sort-according-to 'row 'group))
-          (sort entries (sort-according-to 'gravestone-number 'row))
-          (sort entries (sort-according-to 'first-name 'gravestone-number
-                                           :type :string))
+          (sort entries (according-to 'group))
+          (sort entries (according-to 'row :keep 'group))
+          (sort entries (according-to 'gravestone-number :keep 'row))
+          (sort entries (according-to 'first-name
+                                      :keep 'gravestone-number
+                                      :type :string))
           entries)))
 
 (defvar *cementery-name* "Fl.")
@@ -119,12 +127,12 @@
     ((group (n)
        `(:name ,(format nil "Group ~a" n)
          :password ,(format nil "~a" n)
-         :entries ,(mapcar *create-id-function* (read-entries-from-file
+         :entries ,(read-entries-from-file
                     (make-pathname
                      :name
-                     (format nil "florisdorf/data/Group-~a.lisp" n)))))))
+                     (format nil "florisdorf/data/Group-~a.lisp" n))))))
   (let  ((row 0))
-    (defparameter *logins*
+    (setq *logins*
       `((:name "Test group"
          :password "0"
          :entries ,(mapcar *prepare-item-function*
