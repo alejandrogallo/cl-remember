@@ -3,6 +3,7 @@
 (setq *config*
   `(:port 9000
     :pictures-path ,(uiop:truenamize "florisdorf/data/")
+    :out-path ,(uiop:truenamize "out/")
     :fields (person-name
              questionnaire
              date-of-death

@@ -274,6 +274,24 @@
             (setf (getf current-item 'edited) t)
             (hunchentoot:redirect (item-field-path :item item :field field)))))))
 
+;; POST SAVE
+(hunchentoot:define-easy-handler (saveall-handler :uri "/post/saveall") ()
+  (let ((out-path (getf *config* :out-path))
+        (i 0))
+    (loop for login in *logins*
+          do (let* ((cleaned (make-pathname
+                              :name (substitute #\- #\space
+                                                (getf login :name))))
+                    (login-out (ensure-directories-exist
+                                (merge-pathnames cleaned
+                                                 out-path))))
+               (incf i)
+               (with-open-file (s login-out :if-exists :supersede
+                                            :direction :output)
+                 (format t "~&Saving ~a" login-out)
+                 (format s "~s" (getf login :entries)))))
+    (format nil "~&succesfully saved ~a items~%" i)))
+
 
 ;; GET HTML FORM
 (hunchentoot:define-easy-handler (field-form-handler :uri "/home/item")
