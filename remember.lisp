@@ -37,70 +37,78 @@
 
 (hunchentoot:define-easy-handler (home-handler :uri *home-handler-path*) ()
   (with-login
-    (setf (hunchentoot:content-type*) "text/html")
+      (setf (hunchentoot:content-type*) "text/html")
     (macrolet ((~badge (style &rest body)
                  `(who:htm (:span :class
                                   (format nil "badge bg-~a rounded-0" ,style)
                                   ,@body))))
-     (let ((entries (getf *login* :entries)))
-      (main-page
-          (:title "Home")
-          (:h1 (who:str (getf *login* :name)))
-          (:h3 (who:fmt "~a entries" (length entries)))
-          ;; (who:fmt "~a <br> ~s" (logged-in-p) *login*)
-          (:div :class "container vertical-scrollable"
-                :style "{overflow-y: scroll}"
-                (:ul :class "list-group"
-                     (loop for entry in (progn (funcall *sort-entries-function* entries)
-                                               entries)
-                           for i from 0
-                           do (who:htm
-                               (:li :class "list-group-item d-flex
+      (let ((entries (getf *login* :entries)))
+        (main-page
+            (:title "Home")
+            (:h1 (who:str (getf *login* :name)))
+            (:h3 (who:fmt "~a entries" (length entries)))
+            ;; (who:fmt "~a <br> ~s" (logged-in-p) *login*)
+            (:div :class "container vertical-scrollable"
+                  :style "{overflow-y: scroll}"
+                  (:ul :class "list-group"
+                       (loop for entry in (progn (funcall *sort-entries-function* entries)
+                                                 entries)
+                             for i from 0
+                             do (who:htm
+                                 (:li :class "list-group-item d-flex
                                             justify-content-between
                                             align-items-start"
-                                    :id (format nil "item-~a" i)
-                                    (:div :class "ms-2 me-auto"
-                                          (:a :class ""
-                                              :href (item-field-path :item i)
-                                              (who:str (funcall
-                                                        *list-item-formater*
-                                                        entry)))
-                                          (:div
-                                           (if (getf entry 'pictures)
-                                               (~badge "success" (%icon "camera"))
-                                               (~badge "danger" (%icon "camera")))
-                                           (if (getf entry 'is-new)
-                                               (~badge "info"
-                                                       (%icon "plus-square")
-                                                       (%on-sm " NEW")))
-                                           (if (getf entry 'seen)
-                                               (~badge "success"
-                                                       (%icon "eye")
-                                                       (%on-sm " SEEN"))
-                                               (~badge "danger"
-                                                       (%icon "eye-slash")
-                                                       (%on-sm " UNSEEN")))
-                                           (if (getf entry 'edited)
-                                               (~badge "success"
-                                                       (%icon "check-square-o")
-                                                       (%on-sm " EDITED"))
-                                               (~badge "warning"
-                                                       (%icon "square-o")
-                                                       (%on-sm " UNEDITED")))
-                                           (:a :href (item-create-path :item i)
-                                               (~badge "success"
-                                                       (%icon "plus")))
-                                           )))))))
-          ;; javascript
-          (:script (who:str
-                    (ps:ps
-                      (defun mark-active ()
-                        (let* ((id (ps:chain location href (match (ps:regex "#(.*)")) 1))
-                               (el (ps:chain document (get-element-by-id id) )))
-                          (when el
-                            (ps:chain el class-list (add "list-group-item-info"))
-                            el)))
-                      (mark-active)))))))))
+                                      :id (format nil "item-~a" i)
+                                      (:div :class "ms-2 me-auto"
+                                            (:a :class ""
+                                                :href (item-field-path :item i)
+                                                (who:str (funcall
+                                                          *list-item-formater*
+                                                          entry)))
+                                            (:div
+                                             (if (getf entry 'pictures)
+                                                 (~badge "success" (%icon "camera"))
+                                                 (~badge "danger" (%icon "camera")))
+                                             (if (getf entry 'is-new)
+                                                 (~badge "info"
+                                                         (%icon "plus-square")
+                                                         (%on-sm " NEW")))
+                                             (if (getf entry 'seen)
+                                                 (~badge "success"
+                                                         (%icon "eye")
+                                                         (%on-sm " SEEN"))
+                                                 (~badge "danger"
+                                                         (%icon "eye-slash")
+                                                         (%on-sm " UNSEEN")))
+                                             (if (getf entry 'edited)
+                                                 (~badge "success"
+                                                         (%icon "check-square-o")
+                                                         (%on-sm " EDITED"))
+                                                 (~badge "warning"
+                                                         (%icon "square-o")
+                                                         (%on-sm " UNEDITED")))
+                                             (:a :href (item-create-path :item i)
+                                                 (~badge "success"
+                                                         (%icon "plus")))
+                                             )))))))
+            ;; javascript
+            (:script (who:str
+                      (ps
+                        ;; get id from the url
+                        (defun get-url-id ()
+                          (let* ((url-line (chain location href))
+                                 (m (chain url-line (match (regex "#(.*)")))))
+                            (when m
+                              (chain m 1))))
+
+                        (defun mark-active ()
+                          (let* ((id (get-url-id))
+                                 (el (chain document (get-element-by-id id) )))
+                            (when el
+                              (chain el class-list (add "list-group-item-info"))
+                              el)))
+                        ;; run the mark active function
+                        (mark-active)))))))))
 
 
 
