@@ -168,7 +168,7 @@
              (copy-item (funcall *create-new-item-function* current-item)))
         (setf (getf copy-item 'is-new) t)
         (nconc (getf *login* :entries) (list copy-item))
-        (hunchentoot:redirect (item-list-id
+        (hunchentoot:redirect (item-list-path
                                :item (1+ item))))))
 
 
