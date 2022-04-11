@@ -25,6 +25,11 @@
        "image/")
       hunchentoot:*dispatch-table*)
 
+(push (hunchentoot:create-static-file-dispatcher-and-handler
+       "/map"
+       (uiop:truenamize "florisdorf/in/map.png"))
+      hunchentoot:*dispatch-table*)
+
 (let ((default-date '(day 42 month 42 year 1942 text ""
                       comment ""
                       hebrew-date "")))
