@@ -61,47 +61,39 @@
         (let ((new-item (funcall *prepare-item-function* nil)))
           (setf (getf new-item 'first-name) "???")
           (setf (getf new-item 'family-name) "???")
-          (setf (getf new-item 'gravestone-number) (getf entry 'gravestone-number))
+          (setf (getf new-item 'gravestone-number)
+                (getf entry 'gravestone-number))
           (setf (getf new-item 'row) (getf entry 'row))
           (setf (getf new-item 'group) (getf entry 'group))
           new-item)))
 
+(defun compare-if-non-nil (a b fn)
+  (declare (type function fn))
+  (unless (or (null a) (null b))
+    (funcall fn a b)))
+
+(defun ensure-number (l)
+  (typecase l
+    (string (parse-integer l :junk-allowed t))
+    (number l)
+    (t 0)))
+
 (setq *sort-entries-function*
-      (labels ((ensure-number (l) (typecase l
-                                    (string (parse-integer l :junk-allowed t))
-                                    (t l)))
-               (compare-if-non-nil (a b fn)
-                 (unless (or (null a) (null b))
-                   (funcall fn a b)))
-               (according-to (what &key keep (type :integer))
+      (labels ((according-to-keywords (keywords)
                  (lambda (entry-1 entry-2)
-                   (and (reduce (lambda (x y) (and x y))
-                                (mapcar (lambda (k) (not (eq (getf entry-1 k)
-                                                             (getf entry-2 k))))
-                                        keep)
-                                :initial-value t)
-                        (case type
-                          (:string (compare-if-non-nil (getf entry-1 what)
-                                                       (getf entry-2 what)
-                                                       #'string>))
-                          (:integer (compare-if-non-nil
-                                     (ensure-number (getf entry-1 what))
-                                     (ensure-number (getf entry-2 what))
-                                     #'<)))))))
+                   (reduce (lambda (x y) (and x y))
+                           (mapcar (lambda (what)
+                                     (compare-if-non-nil
+                                      (ensure-number (getf entry-1 what))
+                                      (ensure-number (getf entry-2 what))
+                                      #'<=))
+                                   keywords)
+                           :initial-value t))))
         (lambda (entries)
           ;; todo: use thread-first macro
-          (sort (sort (sort (sort entries
-                                  (according-to 'family-name
-                                                :keep
-                                                '(group row gravestone-number)
-                                                :type :string))
-                            (according-to 'gravestone-number
-                                          :keep
-                                          '(row group)))
-                      (according-to 'row :keep
-                                    '(group)))
-                (according-to 'group))
-          )))
+          (sort (sort (sort entries (according-to-keywords '(group)))
+                      (according-to-keywords '(group row)))
+                (according-to-keywords '(group row gravestone-number))))))
 
 (defvar *cementery-name* "Fl.")
 (setq *list-item-formater*
