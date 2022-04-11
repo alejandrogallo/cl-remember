@@ -41,6 +41,10 @@
                                     (:i :class "fa fa-home")
                                     "Home"))
                            (:li :class "nav-item"
+                                (:a :class "nav-link" :href "/map"
+                                    (:i :class "fa fa-map"
+                                        " Map")))
+                           (:li :class "nav-item"
                                 (:a :class "nav-link" :href "/logout"
                                     (:i :class "fa fa-sign-out"
                                         "Logout")))))))))
