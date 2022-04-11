@@ -75,9 +75,11 @@
                    (funcall fn a b)))
                (according-to (what &key keep (type :integer))
                  (lambda (entry-1 entry-2)
-                   (and (if keep (eq (getf entry-1 keep)
-                                     (getf entry-2 keep))
-                            t)
+                   (and (reduce (lambda (x y) (and x y))
+                                (mapcar (lambda (k) (eq (getf entry-1 k)
+                                                        (getf entry-2 k)))
+                                        keep)
+                                :initial-value t)
                         (case type
                           (:string (compare-if-non-nil (getf entry-1 what)
                                                        (getf entry-2 what)
@@ -87,13 +89,19 @@
                                      (ensure-number (getf entry-2 what))
                                      #'<)))))))
         (lambda (entries)
-          (sort entries (according-to 'group))
-          (sort entries (according-to 'row :keep 'group))
-          (sort entries (according-to 'gravestone-number :keep 'row))
-          (sort entries (according-to 'first-name
-                                      :keep 'gravestone-number
-                                      :type :string))
-          entries)))
+          ;; todo: use thread-first macro
+          (sort (sort (sort (sort entries
+                                  (according-to 'first-name
+                                                :keep
+                                                '(group row gravestone-number)
+                                                :type :string))
+                            (according-to 'gravestone-number
+                                          :keep
+                                          '(row group)))
+                      (according-to 'row :keep
+                                    '(group)))
+                (according-to 'group))
+          )))
 
 (defvar *cementery-name* "Fl.")
 (setq *list-item-formater*
@@ -115,14 +123,7 @@
                          (who:str (getf item 'row)))
                 (:button :class "btn btn-warning" :type "button"
                                "Grave" (:br)
-                               (who:str (getf item 'gravestone-number)))
-                #+img
-                (:img :src (if (getf item 'picture-paths)
-                               (car (getf item 'picture-paths))
-                               *no-image-url*)
-                      :width "64"
-                      :class "img-fluid rounded"))
-          )))
+                               (who:str (getf item 'gravestone-number)))))))
 (flet
     ((group (n)
        `(:name ,(format nil "Group ~a" n)
@@ -131,43 +132,43 @@
                     (make-pathname
                      :name
                      (format nil "florisdorf/in/Group-~a.lisp" n))))))
-  (let  ((row 0))
-    (setq *logins*
-      `((:name "Test group"
-         :password "0"
-         :entries ,(mapcar *prepare-item-function*
-                           `(#1=(first-name "Hans"
-                                            edited nil
-                                            family-name "Musterperson"
-                                            group ,(random 20)
-                                            row ,(random 20))
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#
-                                #1# #1# #1# #1# #1# #1# #1# #1# #1#)))
-        ,(group 3)
-        ,(group 4)
-        ,(group 5)
-        ,(group 6)
-        ,(group 7)
-        ,(group 8)
-        ,(group 9)
-        ,(group 10)
-        ,(group 11)
-        ,(group 12)
-        ,(group 13)
-        ,(group 14)
-        ))))
+  (setq *logins*
+        `((:name "Test group"
+           :password "0"
+           :entries ,(mapcar *prepare-item-function*
+                             `(#1=(first-name "Hans"
+                                              edited nil
+                                              family-name "Musterperson"
+                                              gravestone-number ,(format nil "~a" (random 20))
+                                              group ,(format nil "~a" (random 20))
+                                              row ,(format nil "~a" (random 5)))
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#
+                                  #1# #1# #1# #1# #1# #1# #1# #1# #1#)))
+          ,(group 3)
+          ,(group 4)
+          ,(group 5)
+          ,(group 6)
+          ,(group 7)
+          ,(group 8)
+          ,(group 9)
+          ,(group 10)
+          ,(group 11)
+          ,(group 12)
+          ,(group 13)
+          ,(group 14)
+          )))

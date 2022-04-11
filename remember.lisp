@@ -42,6 +42,8 @@
                  `(who:htm (:span :class
                                   (format nil "badge bg-~a rounded-0" ,style)
                                   ,@body))))
+      (setf (getf *login* :entries)
+            (funcall *sort-entries-function* (getf *login* :entries)))
       (let ((entries (getf *login* :entries)))
         (main-page
             (:title "Home")
@@ -51,8 +53,7 @@
             (:div :class "container vertical-scrollable"
                   :style "{overflow-y: scroll}"
                   (:ul :class "list-group"
-                       (loop for entry in (progn (funcall *sort-entries-function* entries)
-                                                 entries)
+                       (loop for entry in entries
                              for i from 0
                              do (who:htm
                                  (:li :class "list-group-item d-flex
