@@ -76,8 +76,8 @@
                (according-to (what &key keep (type :integer))
                  (lambda (entry-1 entry-2)
                    (and (reduce (lambda (x y) (and x y))
-                                (mapcar (lambda (k) (eq (getf entry-1 k)
-                                                        (getf entry-2 k)))
+                                (mapcar (lambda (k) (not (eq (getf entry-1 k)
+                                                             (getf entry-2 k))))
                                         keep)
                                 :initial-value t)
                         (case type
@@ -91,7 +91,7 @@
         (lambda (entries)
           ;; todo: use thread-first macro
           (sort (sort (sort (sort entries
-                                  (according-to 'first-name
+                                  (according-to 'family-name
                                                 :keep
                                                 '(group row gravestone-number)
                                                 :type :string))
