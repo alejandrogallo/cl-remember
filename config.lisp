@@ -1,9 +1,9 @@
 (in-package :remember)
 
 (setq *config*
-  `(:port 9000
+  `(:port 8000
     :pictures-path ,(uiop:truenamize "florisdorf/data/")
-    :out-path ,(uiop:truenamize "florisdorf/out/")
+    :out-path ,(uiop:truenamize "florisdorf/out2/")
     :fields (person-name
              questionnaire
              date-of-death
@@ -128,7 +128,7 @@
          :entries ,(read-entries-from-file
                     (make-pathname
                      :name
-                     (format nil "florisdorf/in/Group-~a.lisp" n))))))
+                     (format nil "florisdorf/in2/Group-~a.lisp" n))))))
   (setq *logins*
         `((:name "Test group"
            :password "0"

@@ -4,7 +4,8 @@
 (load "config.lisp")
 (hunchentoot:start remember::*acceptor*)
 
-#+with-slynk
+;; #+with-slynk
+(ql:quickload :slynk)
 (let ((slynk-port 4003))
   (ql:quickload :slynk)
   (slynk:create-server :port slynk-port
