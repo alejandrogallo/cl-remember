@@ -15,6 +15,7 @@
                #:cl-forms.who.bootstrap
                #:anaphora
                #:cl-who
+               #:mito
                #:parenscript)
   :components ((:file "package")
                (:file "token")
@@ -25,4 +26,5 @@
                (:file "templates/comments")
                (:file "templates/date")
                (:file "templates/geolocation")
+               (:file "templates/picture-annotation")
                (:file "remember")))
